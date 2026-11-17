@@ -14,17 +14,21 @@ type frame struct {
 	dur  float64 // seconds
 }
 
-// The clip needs concrete colors for qitlog's ANSI indices: a calm dark
-// terminal theme.
+// The clip needs concrete colors for qitlog's ANSI indices: the Graphite
+// Ghostty theme (global-config-setup/ghostty), a neutral near-black that is
+// 82% opaque, with soft accents.
 const (
-	bgColor = "#1a1b26"
-	fgColor = "#c0caf5"
+	bgColor   = "#0a0a0a"
+	bgOpacity = ".82"
+	fgColor   = "#d4d4d4"
+	mutedFg   = "#767676"
 )
 
 var sgrColors = map[int]string{
-	90: "#6b7394", 91: "#f7768e", 92: "#9ece6a", 93: "#e0af68",
-	94: "#7aa2f7", 95: "#bb9af7", 96: "#7dcfff", 97: "#c0caf5",
-	30: "#1a1b26", 37: "#c0caf5",
+	30: "#2e2e2e", 31: "#f2667a", 32: "#5fe39a", 33: "#f2c46d",
+	34: "#5ca8ff", 35: "#b989ff", 36: "#4dd4e6", 37: "#b8b8b8",
+	90: "#767676", 91: "#ff8a99", 92: "#86efb6", 93: "#f7d690",
+	94: "#85bfff", 95: "#cfa8ff", 96: "#7fe3f0", 97: "#f0f0f0",
 }
 
 // Cell geometry in pixels.
@@ -35,6 +39,19 @@ const (
 	padX       = 22
 	padTop     = 44
 )
+
+// fontFamily prefers the terminal's font; the cell positions don't depend on it.
+const fontFamily = `'JetBrainsMono Nerd Font','JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,'DejaVu Sans Mono','Liberation Mono',monospace`
+
+// titleBar draws Ghostty's GNOME title bar: the same surface as the
+// terminal, a centered title and a round close button on the right.
+func titleBar(w int, title string) string {
+	cx := float64(w) - 22
+	return fmt.Sprintf(`<text x="%d" y="22" text-anchor="middle" font-family="%s" font-size="12" font-weight="bold" fill="%s">%s</text>`+
+		`<circle cx="%.0f" cy="18" r="9" fill="%s" fill-opacity=".1"/>`+
+		`<path d="M%.1f 14.5l7 7m0-7l-7 7" stroke="%s" stroke-width="1.5" stroke-linecap="round"/>`+"\n",
+		w/2, fontFamily, mutedFg, html.EscapeString(title), cx, fgColor, cx-3.5, fgColor)
+}
 
 var sgrRe = regexp.MustCompile(`\x1b\[([0-9;]*)m`)
 
@@ -214,9 +231,9 @@ func renderSVG(frames []frame, label string, cols int) string {
 	fmt.Fprintf(&b, "<style>\n.f{animation-duration:%.2fs;animation-iteration-count:infinite;animation-timing-function:step-end}\n%s\n</style>\n",
 		total, keyframes.String())
 	fmt.Fprintf(&b, "<defs>%s</defs>\n", defs.String())
-	fmt.Fprintf(&b, `<rect width="%d" height="%d" rx="10" fill="%s"/>`+"\n", w, h, bgColor)
-	b.WriteString(`<circle cx="22" cy="18" r="5.5" fill="#f7768e" opacity=".8"/><circle cx="40" cy="18" r="5.5" fill="#e0af68" opacity=".8"/><circle cx="58" cy="18" r="5.5" fill="#9ece6a" opacity=".8"/>` + "\n")
-	fmt.Fprintf(&b, `<g font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,'DejaVu Sans Mono','Liberation Mono',monospace" font-size="%d" fill="%s">`+"\n%s\n</g>\n</svg>\n",
-		fontSize, fgColor, groups.String())
+	fmt.Fprintf(&b, `<rect width="%d" height="%d" rx="10" fill="%s" fill-opacity="%s"/>`+"\n", w, h, bgColor, bgOpacity)
+	b.WriteString(titleBar(w, "qitlog"))
+	fmt.Fprintf(&b, `<g font-family="%s" font-size="%d" fill="%s">`+"\n%s\n</g>\n</svg>\n",
+		fontFamily, fontSize, fgColor, groups.String())
 	return b.String()
 }

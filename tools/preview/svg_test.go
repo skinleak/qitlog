@@ -44,3 +44,19 @@ func TestRenderSVGFirstFrameVisible(t *testing.T) {
 		t.Errorf("frame visibility wrong:\n%s", svg)
 	}
 }
+
+func TestRenderSVGUsesGraphiteTheme(t *testing.T) {
+	svg := renderSVG([]frame{{"\x1b[94mx\x1b[0m", 1}}, "x", 10)
+	for _, want := range []string{
+		`fill="#0a0a0a" fill-opacity=".82"`, // translucent Ghostty background
+		`fill="#85bfff"`,                    // SGR 94 → Graphite bright blue
+		`font-family="'JetBrainsMono Nerd Font'`,
+	} {
+		if !strings.Contains(svg, want) {
+			t.Errorf("renderSVG missing %s", want)
+		}
+	}
+	if strings.Contains(svg, "#1a1b26") {
+		t.Error("old theme color left in the SVG")
+	}
+}
